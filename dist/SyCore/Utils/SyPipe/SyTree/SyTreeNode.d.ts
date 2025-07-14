@@ -1,0 +1,32 @@
+import { sy_pipe_types } from "../../../../src/types/SyPipeTypes";
+import { sy_types } from "../../../../src/types/SyTypes";
+import { BindType } from "../../../../src/enums/SyEnums";
+import { ISyResult } from "../../ISyResult";
+import { ISyTreeNode } from "../Interfaces";
+import { SyPipeTree } from "./SyPipeTree";
+type comm_property_name = sy_types.comm_property_name;
+type bind_func = sy_types.bind_func;
+type t_pipe = sy_pipe_types.t_pipe;
+type t_index_pipe = sy_pipe_types.t_index_pipe;
+export declare class SyTreeNode<T extends object> implements ISyTreeNode {
+    root: SyPipeTree<any>;
+    obj: T;
+    prop: comm_property_name;
+    parent: ISyTreeNode | null;
+    children: Set<ISyTreeNode>;
+    protected bindFunction: Map<comm_property_name, bind_func>;
+    protected funcIndex: Map<comm_property_name, Map<BindType, bind_func>>;
+    readonly pipe: t_pipe;
+    readonly level: number;
+    constructor(tree: SyPipeTree<any>, obj: T, prop: comm_property_name, pipe: t_pipe, level: number);
+    listen(prop: comm_property_name, fn: Function, triggerImmediately?: Boolean, bindType?: BindType): ISyResult;
+    unListen(prop?: comm_property_name, bindType?: BindType): ISyResult;
+    trigger(prop: comm_property_name, value: any): void;
+    triggerAll(): void;
+    setParent<P extends object>(parent: SyTreeNode<P>): void;
+    getChild<T extends object>(child: T): ISyTreeNode | undefined;
+    addChild<C extends object>(tree: SyPipeTree<any>, childObj: C, prop: comm_property_name, pipe?: t_index_pipe): ISyTreeNode;
+    getOrCreateChild<C extends object>(tree: SyPipeTree<any>, childObj: C, prop: comm_property_name): ISyTreeNode;
+    changeObj(newObj: T): void;
+}
+export {};

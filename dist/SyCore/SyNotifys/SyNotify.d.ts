@@ -1,0 +1,33 @@
+import { sy_pipe_types } from "../../src/types/SyPipeTypes";
+import { ISyResult } from "../Utils/ISyResult";
+import { SyPipeTree } from "../Utils/SyPipe/SyTree/SyPipeTree";
+import { ISyTreeNode } from "../Utils/SyPipe/Interfaces";
+import { SyContainer } from "../Utils/SyContainer";
+import { BindType, ListMethodType } from "../../src/enums/SyEnums";
+import { sy_types } from "../../src/types/SyTypes";
+type bind_target = sy_types.bind_target;
+type comm_property_name = sy_types.comm_property_name;
+type t_pipe = sy_pipe_types.t_pipe;
+type t_pipe_target = sy_pipe_types.t_pipe_target;
+type t_list_source = sy_pipe_types.t_list_source;
+type t_pipe_leader = sy_pipe_types.t_pipe_leader;
+type t_head_pipe = sy_pipe_types.t_head_pipe;
+type t_pipe_head<T> = sy_pipe_types.t_pipe_head<T>;
+export declare class SyNotify {
+    private static triggerStore;
+    private static funIndex;
+    private static syPipe;
+    static trigger(source: bind_target, prop: comm_property_name, value: any): void;
+    static ltrigger(parent: t_pipe_target, startPosition: t_pipe_target, value: any): void;
+    static htrigger(source: object, prop: ListMethodType, oldValue: t_list_source, value: t_list_source): void;
+    static listen<T extends bind_target, K extends keyof T>(source: T, prop: K, handled: Function, triggerImmediately?: boolean, bindType?: BindType): ISyResult;
+    static lListen(node: ISyTreeNode, prop: comm_property_name, handled: Function, triggerImmediately?: boolean, bindType?: BindType): ISyResult;
+    static unlisten<T extends bind_target, K extends keyof T>(source: T, prop: K, bindType?: BindType): ISyResult;
+    static getOrCreateTree<T extends object>(head: t_pipe_leader): ISyResult<SyPipeTree<T>>;
+    static getOrCreateTreeNode(pipe: t_pipe, parentNode: ISyTreeNode, target: object, prop: comm_property_name): ISyResult<ISyTreeNode>;
+    static getRoot(headpipe: t_pipe): ISyResult<ISyTreeNode>;
+    static getOrCreateHeadTree<T>(head: t_pipe_head<T>): ISyResult<SyPipeTree<t_pipe_head<T>>>;
+    static getOrCreateIndexTreeNode<K extends object>(tree: SyPipeTree<K>, parentNode: ISyTreeNode, target: object, prop: comm_property_name): ISyResult<ISyTreeNode>;
+    static getOrCreateContainer<K>(headpipe: t_head_pipe): ISyResult<SyContainer<K>>;
+}
+export {};

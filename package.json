@@ -1,0 +1,29 @@
+{
+  "name": "sy-bind",
+  "version": "1.0.8",
+  "description": "A lightweight binding framework for Cocos Creator",
+  "main": "./dist/index.js",
+  "types": "./index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc && node add-js-extensions.mjs"
+  },
+  "keywords": [
+    "cocos",
+    "binding",
+    "typescript"
+  ],
+  "author": "SuYuan9197",
+  "license": "MIT",
+  "files": [
+    "dist/**/*",
+    "index.d.ts",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  }
+}
