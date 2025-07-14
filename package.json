@@ -25,5 +25,9 @@
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
     }
+  },
+   "repository": {
+    "type": "git",
+    "url": "https://github.com/zhuang9197/sy-bind.git"
   }
 }
