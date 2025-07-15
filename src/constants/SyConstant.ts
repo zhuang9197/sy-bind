@@ -22,25 +22,48 @@ export const bindHandler:ProxyHandler<Proxiable> = {
          } 
 
          // 处理this绑定
-        if (typeof value === 'function' && target.constructor.prototype[prop as keyof {}] === value) {
+        if (typeof value === 'function' ) {
             let methods = SyReflect.getOrCreateBoundMethods(target)
 
-            if(Array.isArray(target)){
-                if(!methods.has(prop)){
-                    methods.set(prop,value.bind(receiver));
+            if(!methods.has(prop)){
+                // if(Array.isArray(target)){
+                //     methods.set(prop,value.bind(receiver));
+
+                //     if(prop === 'pop'){
+                //         let arrLength = target.length - 1;
+                //         if(arrLength >= 0){
+                //             SyNotify.htrigger(receiver,ListMethodType.pop,arrLength.toString(),null);
+                //         }
+                //     }
+                // }else{
+                const methodSource = getMethodSource(target,prop as string);
+
+                switch(methodSource){
+                    case 'native':
+                        // 原生方法
+                        if(Array.isArray(target) && isArrayMutationMethod(prop)){
+
+                            methods.set(prop,createArrayMethodProxy(value,prop as string,target,receiver))
+                        }else{
+                            methods.set(prop, value.bind(receiver));
+                        }
+                        
+                        break;
+                    case 'builtin':
+                        //内置类型
+                        methods.set(prop,value.bind(target));
+                        break;
+                    case 'own':
+                    case 'parent':
+                        //需要防止无限递归循环
+                        methods.set(prop,createSafeMethodProxy(target,prop as string,value,receiver));
+                        break;
                 }
 
-                if(prop === 'prop'){
-                    let arrLength = target.length - 1;
-                    if(arrLength >= 0){
-                        SyNotify.htrigger(receiver,ListMethodType.pop,arrLength.toString(),null);
-                    }
-                }
-            }else{
-                if(!methods.has(prop)){
-                    methods.set(prop,value.bind(target));
-                }
+                
             }
+
+            
 
             return methods.get(prop);
         }
@@ -132,4 +155,130 @@ export const bindHandler:ProxyHandler<Proxiable> = {
     },
 
     
+}
+
+
+function isBuiltinType(target: any): boolean {
+    // 检查是否有内部插槽（internal slots）
+    const toString = Object.prototype.toString.call(target);
+    const builtinPatterns = [
+        '[object Map]',
+        '[object Set]', 
+        '[object WeakMap]',
+        '[object WeakSet]',
+        '[object Date]',
+        '[object RegExp]',
+        '[object Promise]',
+        '[object ArrayBuffer]',
+        '[object DataView]'
+    ];
+    
+    // 检查 TypedArray
+    if (ArrayBuffer.isView(target) && !(target instanceof DataView)) {
+        return true;
+    }
+    
+    return builtinPatterns.includes(toString);
+}
+
+//检查是否为原生方法
+function isNativeMethod(target: any, prop: string): boolean {
+    // 检查是否为 Object.prototype 上的方法
+    const objectMethods = ['toString', 'valueOf', 'hasOwnProperty', 'propertyIsEnumerable'];
+    if (objectMethods.includes(prop)) {
+        return true;
+    }
+    
+    // 检查方法来源
+    let current = target;
+    while (current && current !== Object.prototype) {
+        const descriptor = Object.getOwnPropertyDescriptor(current, prop);
+        if (descriptor) {
+            // 如果是原生代码实现的方法
+            return /\[native code\]/.test(descriptor.value?.toString?.() || '');
+        }
+        current = Object.getPrototypeOf(current);
+    }
+    
+    return false;
+}
+
+//判定方法来源
+function getMethodSource(target: any, prop: string): 'own' | 'parent' | 'builtin' | 'native' {
+    // 检查是否为实例自有方法
+    if (Object.prototype.hasOwnProperty.call(target, prop)) {
+        return 'own';
+    }
+    
+    // 检查是否在直接父类中定义
+    const parentProto = Object.getPrototypeOf(target.constructor.prototype);
+    if (parentProto && Object.prototype.hasOwnProperty.call(parentProto, prop)) {
+        return 'parent';
+    }
+    
+    // 检查是否为内置方法
+    if (isBuiltinType(target) && target.constructor.prototype[prop] === target[prop]) {
+        return 'builtin';
+    }
+    
+    // 检查是否为原生方法
+    if (isNativeMethod(target, prop)) {
+        return 'native';
+    }
+    
+    return 'parent'; // 默认认为是父类方法
+}
+function createSafeMethodProxy(target: any, prop: string, originalMethod: Function, receiver: any) {
+    // 防止递归的标记
+    const recursionKey = Symbol(`executing_${prop}`);
+    
+    return function(...args: any[]) {
+        // 检查是否已在执行中（防止无限递归）
+        if (receiver[recursionKey]) {
+            return originalMethod.apply(receiver, args);
+        }
+        
+        // 标记开始执行
+        receiver[recursionKey] = true;
+        
+        try {
+            const result = originalMethod.apply(receiver, args);
+
+            
+            
+            return result;
+        } finally {
+            // 确保清除标记
+            delete receiver[recursionKey];
+        }
+    };
+}
+
+
+
+function isArrayMutationMethod(prop: string | symbol): boolean {
+    // return typeof prop === 'string' && 
+    //        ['pop', 'push', 'shift', 'unshift', 'splice', 'sort', 'reverse'].includes(prop);
+    //暂时只在get中处理 pop
+    return typeof prop === 'string' && 
+           ['pop'].includes(prop);
+}
+
+function createArrayMethodProxy(originalMethod: Function, methodName: string,target:any, receiver: any[]) {
+    return function(...args: any[]) {
+        const arrLength = receiver.length;
+        const result = originalMethod.apply(receiver, args);
+        
+        // 根据不同方法触发不同通知
+        switch (methodName) {
+            case 'pop':
+                let arrLength = target.length - 1;
+                if(arrLength >= 0){
+                    SyNotify.htrigger(receiver,ListMethodType.pop,arrLength.toString(),null);
+                }                
+                break;
+        }
+        
+        return result;
+    };
 }
